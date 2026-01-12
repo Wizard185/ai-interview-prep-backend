@@ -8,6 +8,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/token.js";
+import jwt from "jsonwebtoken";
 
 /**
  * @desc    Register new user
@@ -39,6 +40,7 @@ const register = asyncHandler(async (req, res) => {
     fullName,
     email,
     passwordHash,
+    role: "user"
   });
 
   return res.status(201).json(
@@ -70,6 +72,7 @@ const login = asyncHandler(async (req, res) => {
   if (!user) {
     throw new APIError("Invalid email or password", 401);
   }
+
 
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
   if (!isPasswordValid) {
@@ -107,5 +110,67 @@ const login = asyncHandler(async (req, res) => {
       })
     );
 });
+const refresh = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
 
-export { register, login };
+  if (!refreshToken) {
+    throw new APIError("Refresh token missing", 401);
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  } catch {
+    throw new APIError("Invalid refresh token", 401);
+  }
+
+  const user = await User.findById(decoded.userId);
+  if (!user || !user.refreshTokens.includes(refreshToken)) {
+    throw new APIError("Refresh token revoked", 401);
+  }
+
+  const newAccessToken = generateAccessToken(user._id);
+
+  res.cookie("accessToken", newAccessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: 15 * 60 * 1000,
+  });
+
+  return res.status(200).json(
+    new APIResponse({
+      message: "Access token refreshed",
+    })
+  );
+});
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (refreshToken) {
+    const user = await User.findOne({
+      refreshTokens: refreshToken,
+    });
+
+    if (user) {
+      user.refreshTokens = user.refreshTokens.filter(
+        (token) => token !== refreshToken
+      );
+      await user.save();
+    }
+  }
+
+  res
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .json(
+      new APIResponse({
+        message: "Logged out successfully",
+      })
+    );
+});
+
+
+
+export { register, login, refresh, logout };
