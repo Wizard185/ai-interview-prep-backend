@@ -3,7 +3,6 @@ import { User } from "../models/user.models.js";
 import { APIError } from "../utils/APIError.js";
 import { APIResponse } from "../utils/APIResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { isStrongPassword } from "../utils/passwordValidator.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -17,17 +16,6 @@ import jwt from "jsonwebtoken";
  */
 const register = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
-
-  if (!fullName || !email || !password) {
-    throw new APIError("All fields are required", 400);
-  }
-
-  if (!isStrongPassword(password)) {
-    throw new APIError(
-      "Password must be at least 6 characters long and include uppercase, lowercase, number, and special character",
-      400
-    );
-  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -63,10 +51,6 @@ const register = asyncHandler(async (req, res) => {
  */
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw new APIError("Email and password are required", 400);
-  }
 
   const user = await User.findOne({ email }).select("+passwordHash");
   if (!user) {
