@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import { errorHandler } from "./middlewares/error.middlewares.js";
 import userRoutes from "./routes/user.routes.js";
 const app = express();
+import adminRoutes from "./routes/admin.routes.js"
 
 app.use(cors(
     {
@@ -19,6 +20,7 @@ app.use(cookieParser());
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 
 app.use(errorHandler);
