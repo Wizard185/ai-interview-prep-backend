@@ -1,18 +1,20 @@
 import { APIError } from "../utils/APIError.js";
 
 export const errorHandler = (err, req, res, next) => {
-  if (!(err instanceof APIError)) {
-    err = new APIError(
-      "Internal Server Error",
-      500,
-      [],
-      false
-    );
+  
+
+  if (err instanceof APIError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      errors: err.errors || [],
+    });
   }
 
-  res.status(err.statusCode).json({
+  // Fallback for unexpected errors
+  return res.status(500).json({
     success: false,
-    message: err.message,
-    errors: err.errors,
+    message: "Internal Server Error",
+    errors: [],
   });
 };
