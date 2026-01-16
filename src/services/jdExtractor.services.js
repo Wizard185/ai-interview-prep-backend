@@ -1,38 +1,26 @@
-import { SKILL_TAXONOMY } from "../constants/skillTaxonomy.js";
-import { SKILL_ALIASES } from "../constants/skillAliases.js";
+import { BRANCH_SKILL_ALIASES } from "../constants/branchSkillAliases.js";
 import { matchSkill } from "../utils/skillMatcher.js";
 
-/* Normalize text */
 const normalize = (text = "") =>
-  text.toLowerCase().replace(/\s+/g, " ");
+  text.toLowerCase().replace(/[-_/]/g, " ").replace(/\s+/g, " ").trim();
 
-export const extractSkillsFromJD = (jdText) => {
+/**
+ * Extract in-demand skills strictly from JD
+ */
+export const extractSkillsFromJD = (jdText = "") => {
   const text = normalize(jdText);
-  const extracted = {};
+  const requiredSkills = [];
 
-  for (const [category, skills] of Object.entries(SKILL_TAXONOMY)) {
-    const required = [];
+  for (const skill of Object.keys(BRANCH_SKILL_ALIASES)) {
+    const aliases = BRANCH_SKILL_ALIASES[skill];
 
-    for (const skill of skills) {
-      const aliases = SKILL_ALIASES[skill] || [skill];
-
-      if (matchSkill(text, aliases)) {
-        required.push(skill);
-      }
-    }
-
-    if (required.length > 0) {
-      extracted[category] = required;
+    if (matchSkill(text, aliases)) {
+      requiredSkills.push(skill);
     }
   }
 
-  return extracted;
+  return requiredSkills;
 };
-
-
-/* Extract skills from JD */
-
-/* Extract experience requirement from JD */
 export const extractExperienceFromJD = (jdText = "") => {
   const text = jdText.toLowerCase();
 

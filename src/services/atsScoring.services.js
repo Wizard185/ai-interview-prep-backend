@@ -1,46 +1,28 @@
+/**
+ * Combine scores into a relative ATS score
+ */
+export const calculateRelativeATSScore = ({
+  skillScore,
+  coreSubjectScore,
+  jdExperience,
+}) => {
+  // Default: experienced role
+  let skillWeight = 0.8;
+  let coreWeight = 0.2;
 
- import { ATS_SKILLS } from "../constants/atsSkills.js";
-import { APIError } from "../utils/APIError.js";
+  // Fresher / Intern
+  if (jdExperience.min === 0 || jdExperience.level === "Junior") {
+    skillWeight = 0.6;
+    coreWeight = 0.4;
+  }
 
-const normalize = (text) => text.toLowerCase();
+  // If JD has no core subjects
+  if (coreSubjectScore === null) {
+    return Math.round(skillScore);
+  }
 
-const scoreCategory = (resumeText, skills) => {
-  const matched = skills.filter(skill =>
-    resumeText.includes(skill)
+  return Math.round(
+    skillScore * skillWeight +
+    coreSubjectScore * coreWeight
   );
-  return {
-    matched,
-    score: matched.length / skills.length,
-  };
-};
-
-export const scoreResumeWithATS = ({ resumeText, domain }) => {
-  const domainConfig = ATS_SKILLS[domain];
-  if (!domainConfig) {
-    throw new APIError("Unsupported domain", 400);
-  }
-
-  const text = normalize(resumeText);
-  let finalScore = 0;
-  const breakdown = {};
-
-  for (const [category, skills] of Object.entries(domainConfig)) {
-    if (category === "weights") continue;
-
-    const { matched, score } = scoreCategory(text, skills);
-    const weight = domainConfig.weights[category] || 0;
-
-    finalScore += score * weight;
-
-    breakdown[category] = {
-      matched,
-      missing: skills.filter(s => !matched.includes(s)),
-    };
-  }
-
-  return {
-    domain,
-    atsScore: Math.round(finalScore * 100),
-    breakdown,
-  };
 };

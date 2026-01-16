@@ -1,10 +1,9 @@
 import { CORE_SUBJECT_ALIASES } from "../constants/coreSubjectsAliases.js";
 import { matchSkill } from "../utils/skillMatcher.js";
-import { APIError } from "../utils/APIError.js";
 
 export const scoreCoreSubjects = (resumeText, jdCoreSubjects) => {
   if (!jdCoreSubjects || jdCoreSubjects.length === 0) {
-    return null; // JD did not require core subjects
+    return null;
   }
 
   const matched = [];
