@@ -8,7 +8,7 @@ export const analyzeResume = asyncHandler(async (req, res) => {
   const resumeText = await extractTextFromResume(req.file);
   const { jobDescription } = req.body;
 
-  const atsResult = analyzeResumeAgainstJD({
+  const atsResult = await analyzeResumeAgainstJD({
     resumeText,
     jdText: jobDescription,
   });

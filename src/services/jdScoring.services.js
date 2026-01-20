@@ -9,6 +9,14 @@ import { estimateExperienceFromResume } from "./resumeExperience.services.js";
 
 import { BRANCH_SKILL_ALIASES } from "../constants/branchSkillAliases.js";
 import { matchSkill } from "../utils/skillMatcher.js";
+import { generateSuggestions }
+  from "./suggestion.services.js";
+  import { extractProjectsFromResume }
+  from "./projectExtractor.services.js";
+import { generateAISuggestions }
+  from "./ai.services.js";
+
+
 
 const normalize = (text = "") =>
   text.toLowerCase().replace(/[-_/]/g, " ").replace(/\s+/g, " ").trim();
@@ -49,7 +57,7 @@ const scoreSkills = (resumeText, jdSkills) => {
 /**
  * 🔥 FINAL ATS ANALYSIS
  */
-export const analyzeResumeAgainstJD = ({ resumeText, jdText }) => {
+export const analyzeResumeAgainstJD = async ({ resumeText, jdText }) => {
   if (!jdText || jdText.trim().length < 50) {
     throw new APIError("Job description is required", 400);
   }
@@ -79,6 +87,30 @@ export const analyzeResumeAgainstJD = ({ resumeText, jdText }) => {
       : null,
     jdExperience,
   });
+  const suggestions = generateSuggestions({
+    skillResult,
+    coreSubjectResult,
+    jdExperience,
+    candidateExperience,
+  });
+  const deterministicSuggestions = generateSuggestions({
+    skillResult,
+    coreSubjectResult,
+    jdExperience,
+    candidateExperience,
+  });
+
+  // Extract project text
+  const projectText = extractProjectsFromResume(resumeText);
+
+  // AI suggestions (async)
+  const aiSuggestions = await generateAISuggestions({
+    jdText,
+    projectText,
+    skillResult,
+    coreSubjectResult,
+  });
+  
 
   return {
     atsScore: finalATSScore,
@@ -88,5 +120,9 @@ export const analyzeResumeAgainstJD = ({ resumeText, jdText }) => {
     },
     jdExperience,
     candidateExperience,
+    suggestions: {
+      deterministic: deterministicSuggestions,
+      ai: aiSuggestions,
+    },
   };
 };

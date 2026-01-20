@@ -1,83 +1,97 @@
-import { APIError } from "../utils/APIError.js";
+import { GoogleGenAI } from "@google/genai";
+import { parseAISuggestions } from "./aiParser.services.js";
 
 /**
- * Build a strict prompt that forces JSON output
+ * Initialize Gemini client
  */
-const buildResumePrompt = ({ resumeText, targetRole }) => {
-  return `
-You are an expert technical recruiter and career coach.
-
-Analyze the resume below for the role of "${targetRole}".
-
-Return ONLY valid JSON in the following format:
-
-{
-  "score": number (0-100),
-  "strengths": string[],
-  "missingSkills": string[],
-  "suggestions": string[]
-}
-
-Rules:
-- Do NOT include markdown
-- Do NOT include explanations outside JSON
-- Be concise and practical
-
-Resume:
-"""
-${resumeText}
-"""
-`;
-};
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({})
+  : null;
 
 /**
- * Call AI provider (mocked / abstracted)
- * Replace this implementation with OpenAI / Gemini later
+ * Low-level Gemini call (SAFE + STABLE)
  */
-const callAIProvider = async (prompt) => {
-  /**
-   * 🔴 TEMP MOCK (for now)
-   * This allows backend to work without real AI
-   * Replace with real API call later
-   */
-  return `
-  {
-    "score": 75,
-    "strengths": ["Node.js", "Express", "REST APIs"],
-    "missingSkills": ["System Design", "Caching", "Cloud Deployment"],
-    "suggestions": [
-      "Add quantified achievements",
-      "Mention scalability experience",
-      "Include cloud technologies"
-    ]
+const callAIModel = async ({ prompt }) => {
+  if (!ai) {
+    return null;
   }
-  `;
-};
 
-/**
- * Safely parse AI JSON output
- */
-const parseAIResponse = (rawText) => {
   try {
-    return JSON.parse(rawText);
-  } catch (err) {
-    throw new APIError("AI returned invalid JSON", 500);
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview", // ✅ STABLE MODEL
+      contents: prompt,
+    });
+
+    const text = response.text?.trim();
+    if (!text) return null;
+
+    return text
+      .split("\n")
+      .map(line => line.replace(/^[-•\d.\s]+/, "").trim())
+      .filter(Boolean);
+
+  } catch (error) {
+    console.error("Gemini AI error:", error.message);
+    return null;
   }
 };
 
 /**
- * Public service method used by controllers
+ * AI-powered JD + Project analysis (STRUCTURED)
  */
-export const analyzeResumeWithAI = async ({ resumeText, targetRole }) => {
-  if (!resumeText || resumeText.length < 300) {
-    throw new APIError("Resume text is insufficient for analysis", 400);
+export const generateAISuggestions = async ({
+  jdText,
+  projectText,
+  skillResult,
+  coreSubjectResult,
+}) => {
+  // 🔹 No gaps → no AI needed
+  if (
+    (!skillResult || skillResult.missing.length === 0) &&
+    (!coreSubjectResult || coreSubjectResult.missing.length === 0)
+  ) {
+    return {
+      summary: [],
+      reframeSuggestions: [],
+      projectIdeas: [],
+    };
   }
 
-  const prompt = buildResumePrompt({ resumeText, targetRole });
+  const prompt = `
+You are a technical recruiter.
 
-  const rawAIResponse = await callAIProvider(prompt);
+Job Description (summary):
+${jdText.slice(0, 1200)}
 
-  const parsedResult = parseAIResponse(rawAIResponse);
+Candidate Projects:
+${projectText || "No projects listed"}
 
-  return parsedResult;
+Missing Skills:
+${skillResult?.missing.join(", ") || "None"}
+
+Missing Core Subjects:
+${coreSubjectResult?.missing.join(", ") || "None"}
+
+Task:
+1. Briefly summarize project relevance.
+2. Suggest how existing projects can be reframed.
+3. Suggest 1–2 new project ideas aligned with the JD.
+
+Return concise bullet points.
+`;
+
+  // Try Gemini
+  const rawLines = await callAIModel({ prompt });
+
+  // 🔒 Fallback if AI fails
+  if (!rawLines) {
+    return parseAISuggestions([
+      "Projects align reasonably with the job description but can be improved.",
+      "Reframe existing projects to explicitly mention missing skills or concepts.",
+      "Consider adding a project that demonstrates the missing JD requirements.",
+    ]);
+  }
+
+  // ✅ Structured output
+  return parseAISuggestions(rawLines);
 };
