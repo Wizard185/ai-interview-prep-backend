@@ -155,6 +155,25 @@ const logout = asyncHandler(async (req, res) => {
     );
 });
 
+const logoutAll = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.refreshTokens = [];
+    await user.save();
+  }
+
+  res
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .json(
+      new APIResponse({
+        message: "Logged out from all devices",
+      })
+    );
+});
 
 
-export { register, login, refresh, logout };
+
+export { register, login, refresh, logout, logoutAll };

@@ -39,3 +39,19 @@ export const changePassword = async ({
 
   await user.save();
 };
+
+export const updateFullName = async ({ userId, fullName }) => {
+  const user = await User.findById(userId);
+
+  if (!user) throw new APIError("User not found", 404);
+
+  if (user.fullName === fullName) {
+    throw new APIError("New name must be different", 400);
+  }
+
+  user.fullName = fullName;
+  await user.save();
+
+  return { fullName: user.fullName };
+};
+

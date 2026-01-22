@@ -1,6 +1,7 @@
 import { APIResponse } from "../utils/APIResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import {changePassword} from "../services/user.services.js";
+import { changePassword } from "../services/user.services.js";
+import { updateFullName } from "../services/user.services.js";
 const getMe = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new APIResponse({
@@ -31,4 +32,20 @@ const changeUserPassword = asyncHandler(async (req, res) => {
   );
 });
 
-export { getMe,changeUserPassword };
+
+const updateUserName = asyncHandler(async (req, res) => {
+  const result = await updateFullName({
+    userId: req.user._id,
+    fullName: req.body.fullName,
+  });
+
+  return res.status(200).json(
+    new APIResponse({
+      message: "Name updated successfully",
+      data: result,
+    })
+  );
+});
+
+
+export { getMe,changeUserPassword,updateUserName };
