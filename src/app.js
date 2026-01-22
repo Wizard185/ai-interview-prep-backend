@@ -8,6 +8,8 @@ import { errorHandler } from "./middlewares/error.middlewares.js";
 import userRoutes from "./routes/user.routes.js";
 import adminRoutes from "./routes/admin.routes.js"
 import resumeRoutes from "./routes/resume.routes.js"
+import analysisRoutes from "./routes/analysis.routes.js";
+
 
 const app = express();
 app.use(cors(
@@ -24,6 +26,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/resume", resumeRoutes);
+app.use("/api/v1/analysis", analysisRoutes);
+
 
 
 
