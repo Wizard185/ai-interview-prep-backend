@@ -14,7 +14,7 @@ import analysisRoutes from "./routes/analysis.routes.js";
 const app = express();
 app.use(cors(
     {
-        origin: "https://atswizard.vercel.app/",
+        origin: "https://atswizard.vercel.app",
         credentials: true,
     }
 ));
