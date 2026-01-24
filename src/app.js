@@ -16,7 +16,7 @@ app.set("trust proxy", 1);
 
 app.use(cors({
   origin: [
-        "https://atswizard.vercel.app",
+        "https://ats-wizard-frontend.vercel.app",
        "http://localhost:5173"
   ],
   credentials: true,
